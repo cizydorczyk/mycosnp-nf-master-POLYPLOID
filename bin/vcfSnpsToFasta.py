@@ -7,7 +7,7 @@ import vcfTools
 
 parser = argparse.ArgumentParser()
 parser.add_argument('infile', help='multi-sample VCF file', type=str)
-parser.add_argument('--min_depth', help='nuisance parameter for consistence with original mycosnp', type=str)
+parser.add_argument('--min_depth', default=0, help='nuisance parameter for consistence with original mycosnp', type=int)
 parser.add_argument('--max_amb_samples', help='maximum number of samples with ambiguous calls for a site to be included', type=int)
 parser.add_argument('--heterozygous', help='ignore = remove heterozygous sites, degenerate = set hets to degenerate base code, coin_flip = only supports biallelic sites, flip a coin to use ref or alt allele at a heterozygous site, DEFAULT is ignore', type=str)
 args = parser.parse_args()
@@ -16,6 +16,7 @@ infile = args.infile
 
 heterozygous = 'ignore'
 max_amb = 1000000
+min_depth = args.min_depth
 if args.max_amb_samples:
 	max_amb = args.max_amb_samples
 
@@ -58,11 +59,14 @@ for vcf_line in vcf_file:
 		# Process each sample in this record
 		for genome in samples:
 			genotype = record.get_genotype2(index=header.get_sample_index(genome), min_gq=0)
+			record_format = dict(zip(record.format.split(':'), record.genotypes[header.get_sample_index(genome)].split(':')))
+
+			
 			variant_type = record.get_variant_type2(caller, genotype)
 			
 			if pass_or_fail and not variant_type:
 				pass
-			elif pass_or_fail and variant_type == 'SNP':
+			elif pass_or_fail and variant_type == 'SNP' and int(record_format['DP']) >= min_depth:
 				chrom = record.get_chrom()
 				pos = int(record.get_pos())
 
