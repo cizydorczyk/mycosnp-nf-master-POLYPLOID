@@ -1,0 +1,5 @@
+.nextflow*
+work
+results*
+bin/vcfTools.pyc*
+bin/__pycache__/
