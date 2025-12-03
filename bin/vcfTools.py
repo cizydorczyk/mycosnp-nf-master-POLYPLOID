@@ -285,7 +285,126 @@ class VcfRecord:
 		else:
 			parsed_genotype_list[0] = parsed_genotype
 			return parsed_genotype_list
-
+	
+	# Added Dec 3, 2025
+	# Like get_genotype2() but ensures ref calls are still filtered by the AD filter
+	def get_genotype_REF(self, index=0, min_gq=0, min_per_ad=float(0), min_tot_dp=0, het_binom_p=False, return_flags=False):
+		genotype = self.genotypes[index]
+		parsed_genotype = genotype.split(':')[0]
+		
+		# Determine ploidy by counting alleles (separated by / or |)
+		split_gt = re.split(r"[/|]", parsed_genotype)
+		ploidy = len(split_gt)
+		
+		parsed_genotype_list = [parsed_genotype, 0, 0, 0, 0]
+		
+		try:
+			gq = self.get_GQ(parsed_genotype, index)
+			if int(gq) < int(min_gq):
+				if ploidy == 1:
+					parsed_genotype = '.'
+				elif ploidy == 2:
+					parsed_genotype = './.'
+				elif ploidy == 3:
+					parsed_genotype = '././.'
+				else:
+					parsed_genotype = '.'  # fallback for unexpected ploidy
+				parsed_genotype_list[1] = 1
+		except:
+			pass
+		
+		# Check if this is a reference genotype
+		is_ref = all(allele == '0' for allele in split_gt if allele != '.')
+		
+		try:
+			if is_ref:
+				# For reference genotypes, check ref allele support
+				percent_ref_ad = self.get_percent_ref_AD(index)
+				if float(percent_ref_ad) < min_per_ad:
+					if ploidy == 1:
+						parsed_genotype = '.'
+					elif ploidy == 2:
+						parsed_genotype = './.'
+					elif ploidy == 3:
+						parsed_genotype = '././.'
+					else:
+						parsed_genotype = '.'
+					parsed_genotype_list[2] = 1
+			else:
+				# For alt genotypes, check alt allele support (existing logic)
+				percent_ad = self.get_percent_AD2(index)
+				if float(percent_ad) < min_per_ad:
+					if ploidy == 1:
+						parsed_genotype = '.'
+					elif ploidy == 2:
+						parsed_genotype = './.'
+					elif ploidy == 3:
+						parsed_genotype = '././.'
+					else:
+						parsed_genotype = '.'
+					parsed_genotype_list[2] = 1
+		except:
+			pass
+		
+		try:
+			total_dp = self.get_total_DP(index)
+			if int(total_dp) < int(min_tot_dp):
+				if ploidy == 1:
+					parsed_genotype = '.'
+				elif ploidy == 2:
+					parsed_genotype = './.'
+				elif ploidy == 3:
+					parsed_genotype = '././.'
+				else:
+					parsed_genotype = '.'
+				parsed_genotype_list[3] = 1
+		except:
+			pass
+		
+		het_flag = self.is_het(index)
+		if het_binom_p and het_flag:
+			try:
+				p = self.get_AD_binomial_p(index)
+				if p < float(het_binom_p):
+					if ploidy == 2:
+						parsed_genotype = './.'
+					elif ploidy == 3:
+						parsed_genotype = '././.'
+					else:
+						parsed_genotype = '.'
+					parsed_genotype_list[4] = 1
+			except:
+				pass
+		
+		if not return_flags:
+			return parsed_genotype
+		else:
+			parsed_genotype_list[0] = parsed_genotype
+			return parsed_genotype_list
+	
+	# Added Dec 3, 2025
+	# Helper for get_genotype_REF()
+	def get_percent_ref_AD(self, index=0):
+		"""
+		Calculate percentage of reads supporting the reference allele.
+		For haploid: AD is a single value (ref depth)
+		For diploid+: AD is comma-separated, first value is ref depth
+		"""
+		genotype = self.genotypes[index]
+		ad = genotype.split(':')[self.format.split(':').index('AD')]
+		dp = self.get_total_DP(index)
+		
+		if ',' in ad:
+			# Diploid or higher - first value is ref AD
+			ref_ad = int(ad.split(',')[0])
+		else:
+			# Haploid - single AD value is ref
+			ref_ad = int(ad)
+		
+		if int(dp) > 0:
+			return (ref_ad / float(dp)) * 100
+		else:
+			return 0
 
 	def is_het(self,index=0): #### currently works only on biallelic sites
 		het = False

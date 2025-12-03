@@ -293,7 +293,7 @@ workflow MYCOSNP {
     def aligned_with_ploidy = BWA_PREPROCESS.out.alignment_combined.map { meta, bam, bai ->
     	def sample_ploidy = ploidy_map.get(meta.id, 2)
     	def new_meta = meta + [ploidy: sample_ploidy]
-    	def extra_args = "-ERC GVCF --sample-ploidy ${sample_ploidy}"
+    	def extra_args = "-ERC BP_RESOLUTION --sample-ploidy ${sample_ploidy}"
     	return [new_meta, bam, bai, [], extra_args]
 	}
 
