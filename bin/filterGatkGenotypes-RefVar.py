@@ -147,7 +147,24 @@ def get_AD_from_genotype(genotype_field, format_string):
             return ad_value if ad_value != '.' else None
     return None
 
-
+# Helper function to get appropriate missing genotype based on ploidy
+def get_missing_genotype(gt):
+    """
+    Returns appropriate missing genotype string based on ploidy of input GT.
+    Examples: '0/0' -> './.', '0/0/0' -> '././.', '0' -> '.'
+    """
+    if '/' in gt:
+        alleles = gt.split('/')
+        ploidy = len(alleles)
+        return '/'.join(['.'] * ploidy)
+    elif '|' in gt:
+        alleles = gt.split('|')
+        ploidy = len(alleles)
+        return '|'.join(['.'] * ploidy)
+    else:
+        # Haploid
+        return '.'
+        
 # Helper function to filter reference site genotypes
 def filter_reference_genotype(genotype_field, format_string, min_rgq, min_per_ad, min_tot_dp, keep_rgq_0):
     """
@@ -236,7 +253,8 @@ def filter_reference_genotype(genotype_field, format_string, min_rgq, min_per_ad
     
     # If filters fail, set genotype to missing
     if should_filter:
-        split_genotype[0] = './.'
+        #split_genotype[0] = './.'
+        split_genotype[0] = get_missing_genotype(gt)
         return ':'.join(split_genotype), RGQ_flag, AD_flag, DP_flag
     
     return genotype_field, RGQ_flag, AD_flag, DP_flag
