@@ -9,12 +9,12 @@ parser = argparse.ArgumentParser()
 parser.add_argument('infile', help='multi-sample VCF file', type=str)
 parser.add_argument('--min_depth', default=0, help='nuisance parameter for consistence with original mycosnp', type=int)
 parser.add_argument('--max_amb_samples', help='maximum number of samples with ambiguous calls for a site to be included', type=int)
-parser.add_argument('--heterozygous', help='ignore = remove heterozygous sites, degenerate = set hets to degenerate base code, coin_flip = only supports biallelic sites, flip a coin to use ref or alt allele at a heterozygous site, DEFAULT is ignore', type=str)
+parser.add_argument('--heterozygous', help='ignore = remove heterozygous sites, degenerate = set hets to degenerate base code, coin_flip = only supports biallelic sites, flip a coin to use ref or alt allele at a heterozygous site, DEFAULT is degenerate', type=str, default='degenerate')
 args = parser.parse_args()
 
 infile = args.infile
 
-heterozygous = 'ignore'
+heterozygous = args.heterozygous
 max_amb = 1000000
 min_depth = args.min_depth
 if args.max_amb_samples:
@@ -75,9 +75,9 @@ for vcf_line in vcf_file:
 				if not chrom in alt_bases[genome]:
 					alt_bases[genome][chrom] = {}
 				
-				if args.heterozygous == 'degenerate':
+				if heterozygous == 'degenerate':
 					alt_bases[genome][chrom][pos] = record.get_alt_degenerate2(genotype)
-				elif args.heterozygous == 'coin_flip':
+				elif heterozygous == 'coin_flip':
 					alt_bases[genome][chrom][pos] = record.get_alt_random(genotype)
 				else:
 					alt_bases[genome][chrom][pos] = record.get_alt(genotype)
