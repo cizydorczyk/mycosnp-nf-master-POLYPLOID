@@ -21,6 +21,8 @@ process VCF_TO_FASTA {
 
     def is_compressed_vcf = vcf.getName().endsWith(".gz") ? true : false
     def vcf_name = vcf.getName().replace(".gz", "")
+    
+    //vcfSnpsToFasta.py now runs in --heterozygous degenerate mode by default, coded into the script itself (Dec. 9, 2025)
 
     """
     NUM_SAMPLES=\$(cat $samplelist | wc -l)
@@ -33,7 +35,7 @@ process VCF_TO_FASTA {
     if [ "$is_compressed_vcf" == "true" ]; then
         gzip -c -d $vcf > $vcf_name
     fi
-
+    
     vcfSnpsToFasta.py --max_amb_samples \$MAX_AMB_SAMPLES --min_depth $min_depth $vcf_name > ${prefix}_vcf-to-fasta.fasta
     echo "NUM_SAMPLES=\$NUM_SAMPLES" >> log.txt
     echo "MAX_PERC_AMB_SAMPLES=$max_perc_amb_samples" >> log.txt

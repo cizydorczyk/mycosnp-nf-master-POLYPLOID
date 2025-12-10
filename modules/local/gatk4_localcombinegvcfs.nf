@@ -24,6 +24,7 @@ process GATK4_LOCALCOMBINEGVCFS {
     task.ext.when == null || task.ext.when
 
     script:
+    // placeholder
     def args = task.ext.args ?: ''
     def avail_mem       = 3
     def prefix = task.ext.prefix ?: "${meta.id}"
